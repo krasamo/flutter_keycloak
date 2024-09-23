@@ -235,4 +235,51 @@ class FlutterKeycloak {
     await clearSession();
     return;
   }
+
+       /// Logs the user out using post method
+  Future postLogout({bool destroySession = true, inputConf, inputTokens}) async {
+    if (destroySession) {
+      final conf = inputConf ?? getConfiguration();
+
+      if (conf == null) {
+        throw 'Could not read configuration from storage';
+      }
+      final resource = conf['resource'];
+      final credentials = conf['credentials'];
+      final realm = conf['realm'];
+      final authServerUrl = conf['auth-server-url'];
+      final savedTokens = inputTokens ?? getTokens();
+
+      if (savedTokens == null) {
+        throw 'Error during kc-logout, savedTokens is $savedTokens';
+      }
+
+      final logoutUrl =
+          '${getRealmURL(realm, authServerUrl)}/protocol/openid-connect/logout';
+
+      final dio = Dio();
+      dio.options.headers[HttpHeaders.acceptHeader] = 'application/json';
+      dio.options.headers[HttpHeaders.contentTypeHeader] =
+          'application/x-www-form-urlencoded';
+
+      final response = await dio.post(
+        logoutUrl,
+        data: {
+          'client_id': Uri.encodeComponent(resource),
+          'client_secret': credentials != null ? credentials['secret'] : null,
+          'refresh_token': savedTokens['refresh_token']
+        }
+      );
+
+      if (response.statusCode == 204) {
+        await clearSession();
+        return;
+      }
+
+      throw 'Error during kc-logout: ${response.statusCode}: ${response.data}';
+    }
+
+    await clearSession();
+    return;
+  }
 }
