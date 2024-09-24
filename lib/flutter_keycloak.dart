@@ -72,7 +72,7 @@ class FlutterKeycloak {
     dynamic conf,
     String username,
     String password, {
-    String? scope,
+    String scope = 'openid',
     bool storeInfo = true,
   }) async =>
       await _performLogin(
@@ -214,8 +214,15 @@ class FlutterKeycloak {
         throw 'Error during kc-logout, savedTokens is $savedTokens';
       }
 
-      final logoutUrl =
-          '${getRealmURL(realm, authServerUrl)}/protocol/openid-connect/logout';
+      final String logoutUrl;
+
+      if (savedTokens['id_token'] != null) {
+        logoutUrl = '${getRealmURL(realm, authServerUrl)}/protocol/openid-connect/logout?id_token_hint=${savedTokens['id_token']}';
+      } else {
+        logoutUrl = '${getRealmURL(realm, authServerUrl)}/protocol/openid-connect/logout';
+      }
+
+      
 
       final dio = Dio();
       dio.options.headers[HttpHeaders.acceptHeader] = 'application/json';
